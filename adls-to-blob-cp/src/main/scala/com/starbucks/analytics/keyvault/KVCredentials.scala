@@ -1,9 +1,9 @@
 package com.starbucks.analytics.keyvault
 
 import java.util
-import java.util.concurrent.{ExecutorService, Executors, Future}
+import java.util.concurrent.{ ExecutorService, Executors, Future }
 
-import com.microsoft.aad.adal4j.{AuthenticationContext, AuthenticationResult, ClientCredential}
+import com.microsoft.aad.adal4j.{ AuthenticationContext, AuthenticationResult, ClientCredential }
 import com.microsoft.azure.keyvault.authentication.KeyVaultCredentials
 import com.microsoft.windowsazure.core.pipeline.filter.ServiceRequestContext
 import org.apache.http.Header

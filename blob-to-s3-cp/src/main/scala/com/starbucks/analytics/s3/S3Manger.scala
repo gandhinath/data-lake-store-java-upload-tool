@@ -25,16 +25,16 @@ object S3Manger {
     try{
       logger.info(s"S3 bucket upload for file ${blobName} to bucket ${bucketName} for size ${blobSize}")
       val fileName = folderName+ "/" +blobName.split("\\/").last
-      if(!checkIfExists(bucketName, fileName, blobSize, s3Client)) {
+      //if(!checkIfExists(bucketName, fileName, blobSize, s3Client)) {
         val metadata = new ObjectMetadata()
         metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION)
         metadata.setContentLength(blobSize)
         s3Client.putObject(new PutObjectRequest(bucketName, fileName, data, metadata))
         true
-      } else {
-        logger.warn(s"File ${fileName} with same content length already exists in s3Bucket: ${bucketName}")
-        false
-      }
+//      } else {
+//        logger.warn(s"File ${fileName} with same content length already exists in s3Bucket: ${bucketName}")
+//        false
+//      }
     } catch {
       case e: Exception => {
         logger.error(s"Uploading ${blobName} to s3Bucket: ${bucketName} failed.")
