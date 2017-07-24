@@ -104,9 +104,9 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
           }
 
           BlobManager.withSASUriBlobReference(sasUri, getBlobStream) match {
-            case Failure(e) =>
+            case Failure(e) => {
               logger.error(s"Unable to get InputStream for ${sasUri}")
-              logger.error(e.getCause.toString)
+            }
             case Success(blobStreamData) => {
               val blobInputStream = blobStreamData._1
               val blobName = blobStreamData._2
