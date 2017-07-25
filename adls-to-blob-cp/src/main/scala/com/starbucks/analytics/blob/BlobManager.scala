@@ -53,14 +53,11 @@ object BlobManager {
     containerName:  String,
     f:              (CloudBlobContainer) => R
   ): Try[R] = {
-<<<<<<< HEAD
     def fn(serviceClient: CloudBlobClient): R = {
       val container = serviceClient.getContainerReference(containerName)
-      val blobEncryptionPolicy = new BlobEncryptionPolicy(keyVaultKey, null)
       val blobRequestOptions = new BlobRequestOptions()
       val operationContext = new OperationContext()
       blobRequestOptions.setConcurrentRequestCount(100)
-      blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
       operationContext.setLoggingEnabled(true)
       container.createIfNotExists(
         BlobContainerPublicAccessType.OFF,
@@ -69,21 +66,6 @@ object BlobManager {
       )
       f(container)
     }
-=======
-      def fn(serviceClient: CloudBlobClient): R = {
-        val container = serviceClient.getContainerReference(containerName)
-        val blobRequestOptions = new BlobRequestOptions()
-        val operationContext = new OperationContext()
-        blobRequestOptions.setConcurrentRequestCount(100)
-        operationContext.setLoggingEnabled(true)
-        container.createIfNotExists(
-          BlobContainerPublicAccessType.OFF,
-          blobRequestOptions,
-          operationContext
-        )
-        f(container)
-      }
->>>>>>> 12d9cee725b6e0f8c5797dc1c6eec917c3c4f8a2
     withAzureBlobStoreClient(
       connectionInfo,
       fn
