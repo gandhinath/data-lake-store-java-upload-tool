@@ -88,8 +88,8 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
       parallelListofEvents.foreach(event => {
         logger.info(s"Start copying for file ${event.getUri}")
           val uris = event.getUri.split(";")
-          val primaryUri = uris(0).split("=")(1).trim
-          val secondaryUri = uris(1).split("=")(1).trim
+          val primaryUri = uris(0).split(" = ")(1).trim
+          val secondaryUri = uris(1).split(" = ")(1).trim
           val sasUri = primaryUri.substring(1, primaryUri.length - 1) + "?" + event.getSASToken.trim
           logger.info("SAS URI for the blob is : " + sasUri)
 
