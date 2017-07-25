@@ -1,11 +1,20 @@
 package com.starbucks.analytics
 
 import com.microsoft.azure.datalake.store.ADLFileInputStream
+<<<<<<< HEAD
 import com.microsoft.azure.storage.blob.CloudBlockBlob
 import com.starbucks.analytics.adls.{ ADLSConnectionInfo, ADLSManager }
 import com.starbucks.analytics.blob.{ BlobConnectionInfo, BlobManager }
 import com.starbucks.analytics.eventhub.{ Event, EventHubConnectionInfo, EventHubManager }
 import com.starbucks.analytics.keyvault.{ KeyVaultConnectionInfo, KeyVaultManager }
+=======
+import com.microsoft.azure.storage.{AccessCondition, OperationContext}
+import com.microsoft.azure.storage.blob.{BlobEncryptionPolicy, BlobRequestOptions, CloudBlockBlob}
+import com.starbucks.analytics.adls.{ADLSConnectionInfo, ADLSManager}
+import com.starbucks.analytics.blob.{BlobConnectionInfo, BlobManager}
+import com.starbucks.analytics.eventhub.{Event, EventHubConnectionInfo, EventHubManager}
+import com.starbucks.analytics.keyvault.{KeyVaultConnectionInfo, KeyVaultManager}
+>>>>>>> 12d9cee725b6e0f8c5797dc1c6eec917c3c4f8a2
 import com.typesafe.scalalogging.Logger
 
 import scala.collection.mutable
@@ -162,7 +171,6 @@ object Main {
     BlobManager.getBlockBlobReference(
       blobConnectionInfo,
       conf.blobStoreContainerName(),
-      keyVaultKey.get,
       blobFileName
     ) match {
         case Failure(exception) => {
@@ -173,6 +181,7 @@ object Main {
           success = false
         }
         case Success(blockBlobReference: CloudBlockBlob) => {
+<<<<<<< HEAD
           def fn(stream: ADLFileInputStream) = {
             var data = Array.fill[Byte](conf.desiredBufferSize() * 1000000)(0)
             while (stream.read(data) != -1) {
@@ -180,6 +189,21 @@ object Main {
                 data,
                 0,
                 data.length
+=======
+            def fn(stream: ADLFileInputStream) = {
+              val blobEncryptionPolicy = new BlobEncryptionPolicy(keyVaultKey.get, null)
+              val blobRequestOptions = new BlobRequestOptions()
+              val operationContext = new OperationContext()
+              blobRequestOptions.setConcurrentRequestCount(100)
+              blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
+              operationContext.setLoggingEnabled(true)
+              blockBlobReference.upload(
+                stream,
+                -1,
+                null,
+                blobRequestOptions,
+                operationContext
+>>>>>>> 12d9cee725b6e0f8c5797dc1c6eec917c3c4f8a2
               )
             }
           }
