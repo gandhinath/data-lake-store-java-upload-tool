@@ -37,8 +37,8 @@ object S3Manger {
       }
     } catch {
       case e: Exception => {
+        logger.error(e.toString)
         logger.error(s"Uploading ${blobName} to s3Bucket: ${bucketName} failed.")
-        logger.error(e.getCause.toString)
         false
       }
     }
@@ -57,6 +57,7 @@ object S3Manger {
     if(s3Client.doesObjectExist(bucketName, fileName)) {
       if(s3Client.getObjectMetadata(bucketName, fileName).getContentLength == fileSize) doesExists = true
     }
+    logger.info(s"${fileName} exists ? ${doesExists}")
     doesExists
   }
 }
