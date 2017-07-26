@@ -7,7 +7,7 @@ name in ThisBuild := "adls-to-blob-cp"
 
 organization in ThisBuild := "com.starbucks.analytics"
 
-version in ThisBuild := "0.1"
+version in ThisBuild := "0.2"
 
 licenses in ThisBuild += ("Apache License, Version 2.0", url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
@@ -18,6 +18,8 @@ organizationName in ThisBuild := "Starbucks"
 scalaVersion in ThisBuild := "2.12.2"
 
 crossScalaVersions in ThisBuild := Seq("2.12.1")
+
+mainClass in assembly := Some("com.starbucks.analytics.Main")
 
 libraryDependencies in ThisBuild ++= Seq(
   scala_logging,

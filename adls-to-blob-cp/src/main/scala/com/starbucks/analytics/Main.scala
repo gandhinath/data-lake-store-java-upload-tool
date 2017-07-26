@@ -1,18 +1,18 @@
 package com.starbucks.analytics
 
 import com.microsoft.azure.datalake.store.ADLFileInputStream
-import com.microsoft.azure.storage.{AccessCondition, OperationContext}
-import com.microsoft.azure.storage.blob.{BlobEncryptionPolicy, BlobRequestOptions, CloudBlockBlob}
-import com.starbucks.analytics.adls.{ADLSConnectionInfo, ADLSManager}
-import com.starbucks.analytics.blob.{BlobConnectionInfo, BlobManager}
-import com.starbucks.analytics.eventhub.{Event, EventHubConnectionInfo, EventHubManager}
-import com.starbucks.analytics.keyvault.{KeyVaultConnectionInfo, KeyVaultManager}
+import com.microsoft.azure.storage.{ AccessCondition, OperationContext }
+import com.microsoft.azure.storage.blob.{ BlobEncryptionPolicy, BlobRequestOptions, CloudBlockBlob }
+import com.starbucks.analytics.adls.{ ADLSConnectionInfo, ADLSManager }
+import com.starbucks.analytics.blob.{ BlobConnectionInfo, BlobManager }
+import com.starbucks.analytics.eventhub.{ Event, EventHubConnectionInfo, EventHubManager }
+import com.starbucks.analytics.keyvault.{ KeyVaultConnectionInfo, KeyVaultManager }
 import com.typesafe.scalalogging.Logger
 
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParSeq
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Entry point for the application
@@ -173,21 +173,21 @@ object Main {
           success = false
         }
         case Success(blockBlobReference: CloudBlockBlob) => {
-            def fn(stream: ADLFileInputStream) = {
-              val blobEncryptionPolicy = new BlobEncryptionPolicy(keyVaultKey.get, null)
-              val blobRequestOptions = new BlobRequestOptions()
-              val operationContext = new OperationContext()
-              blobRequestOptions.setConcurrentRequestCount(100)
-              blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
-              operationContext.setLoggingEnabled(true)
-              blockBlobReference.upload(
-                stream,
-                -1,
-                null,
-                blobRequestOptions,
-                operationContext
-              )
-            }
+          def fn(stream: ADLFileInputStream) = {
+            val blobEncryptionPolicy = new BlobEncryptionPolicy(keyVaultKey.get, null)
+            val blobRequestOptions = new BlobRequestOptions()
+            val operationContext = new OperationContext()
+            blobRequestOptions.setConcurrentRequestCount(100)
+            blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
+            operationContext.setLoggingEnabled(true)
+            blockBlobReference.upload(
+              stream,
+              -1,
+              null,
+              blobRequestOptions,
+              operationContext
+            )
+          }
           ADLSManager.withAzureDataLakeStoreFileStream[Boolean](
             adlsConnectionInfo,
             sourceFile,

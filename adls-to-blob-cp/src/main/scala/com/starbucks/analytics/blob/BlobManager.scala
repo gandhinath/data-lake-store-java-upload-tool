@@ -3,10 +3,10 @@ package com.starbucks.analytics.blob
 import java.util
 
 import com.microsoft.azure.keyvault.core.IKey
-import com.microsoft.azure.storage.{CloudStorageAccount, OperationContext}
+import com.microsoft.azure.storage.{ CloudStorageAccount, OperationContext }
 import com.microsoft.azure.storage.blob._
 import com.typesafe.scalalogging.Logger
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 
 import scala.util.Try
 
@@ -53,19 +53,19 @@ object BlobManager {
     containerName:  String,
     f:              (CloudBlobContainer) => R
   ): Try[R] = {
-      def fn(serviceClient: CloudBlobClient): R = {
-        val container = serviceClient.getContainerReference(containerName)
-        val blobRequestOptions = new BlobRequestOptions()
-        val operationContext = new OperationContext()
-        blobRequestOptions.setConcurrentRequestCount(100)
-        operationContext.setLoggingEnabled(true)
-        container.createIfNotExists(
-          BlobContainerPublicAccessType.OFF,
-          blobRequestOptions,
-          operationContext
-        )
-        f(container)
-      }
+    def fn(serviceClient: CloudBlobClient): R = {
+      val container = serviceClient.getContainerReference(containerName)
+      val blobRequestOptions = new BlobRequestOptions()
+      val operationContext = new OperationContext()
+      blobRequestOptions.setConcurrentRequestCount(100)
+      operationContext.setLoggingEnabled(true)
+      container.createIfNotExists(
+        BlobContainerPublicAccessType.OFF,
+        blobRequestOptions,
+        operationContext
+      )
+      f(container)
+    }
     withAzureBlobStoreClient(
       connectionInfo,
       fn
@@ -86,9 +86,9 @@ object BlobManager {
     containerName:  String,
     blobName:       String
   ): Try[CloudBlockBlob] = {
-      def fn(container: CloudBlobContainer): CloudBlockBlob = {
-        container.getBlockBlobReference(blobName)
-      }
+    def fn(container: CloudBlobContainer): CloudBlockBlob = {
+      container.getBlockBlobReference(blobName)
+    }
     withAzureBlobContainer[CloudBlockBlob](
       connectionInfo,
       containerName,
