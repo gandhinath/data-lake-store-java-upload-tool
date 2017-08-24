@@ -1,11 +1,10 @@
 package com.starbucks.analytics
 
-import java.io.{ByteArrayOutputStream, FileOutputStream}
+import java.io.ByteArrayOutputStream
 
 import com.microsoft.azure.datalake.store.ADLFileInputStream
-import com.microsoft.azure.keyvault.extensions.KeyVaultKeyResolver
 import com.microsoft.azure.storage.{AccessCondition, OperationContext}
-import com.microsoft.azure.storage.blob.{BlobEncryptionPolicy, BlobInputStream, BlobRequestOptions, CloudBlockBlob}
+import com.microsoft.azure.storage.blob.{BlobEncryptionPolicy, BlobRequestOptions, CloudBlockBlob}
 import com.starbucks.analytics.adls.{ADLSConnectionInfo, ADLSManager}
 import com.starbucks.analytics.blob.{BlobConnectionInfo, BlobManager}
 import com.starbucks.analytics.eventhub.{Event, EventHubConnectionInfo, EventHubManager}
@@ -18,15 +17,14 @@ import scala.collection.parallel.mutable.ParSeq
 import scala.util.{Failure, Success, Try}
 
 /**
- * Entry point for the application
- */
+  * Entry point for the application
+  */
 object Main {
   val logger = Logger("Main")
   var successMap = new mutable.LinkedHashMap[String, (Boolean, Option[(String, String)])]()
 
   /**
     * Entry point
-    *
     * @param args Command line arguments
     */
   def main(args: Array[String]) {
@@ -130,16 +128,16 @@ object Main {
     *
     * @param adlsConnectionInfo Azure Data Lake Store Connection Information
     * @param blobConnectionInfo Azure Data Blob Store Connection Information
-    * @param conf               Tool configuration
-    * @param sourceFile         File to upload
+    * @param conf Tool configuration
+    * @param sourceFile File to upload
     * @return
     */
   def upload(
-              adlsConnectionInfo: ADLSConnectionInfo,
-              blobConnectionInfo: BlobConnectionInfo,
+              adlsConnectionInfo:     ADLSConnectionInfo,
+              blobConnectionInfo:     BlobConnectionInfo,
               keyVaultConnectionInfo: KeyVaultConnectionInfo,
-              conf: Conf,
-              sourceFile: String
+              conf:                   Conf,
+              sourceFile:             String
             ): (Boolean, Option[(String, String)]) = {
     var success = false
     var uriAndToken: Option[(String, String)] = None
@@ -163,7 +161,6 @@ object Main {
       keyVaultConnectionInfo,
       conf.keyVaultResourceUri()
     )
-
 
     BlobManager.getBlockBlobReference(
       blobConnectionInfo,
@@ -192,8 +189,12 @@ object Main {
             blobRequestOptions,
             operationContext
           )
+          // Decrypt using the resolver.
+          println(blockBlobReference.downloadText(null, null, blobRequestOptions, operationContext))
+          val outStream = new ByteArrayOutputStream()
+          blockBlobReference.download(outStream, null, blobRequestOptions, null)
+          println(new String(outStream.toByteArray))
         }
-
         ADLSManager.withAzureDataLakeStoreFileStream[Boolean](
           adlsConnectionInfo,
           sourceFile,
@@ -234,16 +235,16 @@ object Main {
   }
 
   /**
-   * Return a list of files from the source
-   *
-   * @param conf Configuration
-   * @param adlsConnectionInfo Connection Information for
-   *                           Azure Data Lake Store
-   */
+    * Return a list of files from the source
+    *
+    * @param conf Configuration
+    * @param adlsConnectionInfo Connection Information for
+    *                           Azure Data Lake Store
+    */
   def getListOfFiles(
-    conf:               Conf,
-    adlsConnectionInfo: ADLSConnectionInfo
-  ): mutable.ListBuffer[String] = {
+                      conf:               Conf,
+                      adlsConnectionInfo: ADLSConnectionInfo
+                    ): mutable.ListBuffer[String] = {
     // Set up the source structure that this tool needs to
     // operate on
     var listOfFiles = new mutable.ListBuffer[String]()

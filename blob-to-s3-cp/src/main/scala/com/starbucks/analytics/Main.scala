@@ -1,15 +1,9 @@
 package com.starbucks.analytics
 
-import java.io.{ByteArrayOutputStream, FileOutputStream}
-
 import com.microsoft.azure.eventprocessorhost.{EventProcessorHost, EventProcessorOptions}
-import com.microsoft.azure.keyvault.extensions.KeyVaultKeyResolver
-import com.microsoft.azure.storage.OperationContext
-import com.microsoft.azure.storage.blob.{BlobEncryptionPolicy, BlobInputStream, BlobRequestOptions, CloudBlockBlob}
-import com.starbucks.analytics.Main.decryptDownload
-import com.starbucks.analytics.blob.{BlobConnectionInfo, BlobManager}
+import com.starbucks.analytics.blob.BlobConnectionInfo
 import com.starbucks.analytics.eventhub._
-import com.starbucks.analytics.keyvault.{KeyVaultConnectionInfo, KeyVaultManager}
+import com.starbucks.analytics.keyvault.KeyVaultConnectionInfo
 import com.starbucks.analytics.s3.S3ConnectionInfo
 import com.typesafe.scalalogging.Logger
 
@@ -94,72 +88,75 @@ object Main {
     }
 
 
-    // Method to download the blob file and get decrypted content.
-    def decryptDownload(blobConnectionInfo: BlobConnectionInfo,
-                        keyVaultConnectionInfo: KeyVaultConnectionInfo,
-                        conf: Conf
-                       ): KeyVaultKeyResolver = {
-
-      // Generate the file name
-      var blobFileName = conf.blobStoreRootFolder.getOrElse("")
-      if (blobFileName.startsWith("/"))
-        blobFileName = blobFileName.drop(1)
-      if (blobFileName.length > 0) {
-        if (!blobFileName.endsWith("/"))
-          blobFileName += "/"
-      }
-
-      //    if (!sourceFile.startsWith("/"))
-      //      blobFileName = s"$blobFileName$sourceFile"
-      //    else
-      //      blobFileName = s"$blobFileName${sourceFile.drop(1)}"
-
-      val keyVaultResolver = new KeyVaultKeyResolver(KeyVaultManager.getKeyVaultKeyClient(keyVaultConnectionInfo, conf.keyVaultResourceUri()))
-      keyVaultResolver
-    }
-
-
-
-
-    // Start the download of the encrypted file from blob.
-
-    val keyVaultResolver = decryptDownload(blobConnectionInfo, keyVaultConnectionInfo, conf)
-
-
-
-    // do the decrypt download here.
-    eventsToPublish.foreach(event => {
-      logger.info(s"Start copying for file ${event.uri}")
-      val uris = event.uri.split(";")
-      val primaryUri = uris(0).split(" = ")(1).trim
-      val secondaryUri = uris(1).split(" = ")(1).trim
-      val sasUri = primaryUri.substring(1, primaryUri.length - 1) + "?" + event.sharedAccessSignatureToken.trim
-      logger.info("SAS URI for the blob is : " + sasUri)
-
-      // Method to create and get Aure blob InputStream, blobName and blobSize.
-      def getBlobStream(azureBlockBlob: CloudBlockBlob): (BlobInputStream, String, Long) = {
-        val blobEncryptionPolicy = new BlobEncryptionPolicy(null, keyVaultResolver)
-        val blobRequestOptions = new BlobRequestOptions()
-        val operationContext = new OperationContext()
-        blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
-        blobRequestOptions.setConcurrentRequestCount(100)
-        operationContext.setLoggingEnabled(true)
-        // get the blob file metadata.
-        azureBlockBlob.downloadAttributes()
-
-        println(azureBlockBlob.downloadText(null, null, blobRequestOptions, operationContext))
-        azureBlockBlob.download(new FileOutputStream("/Users/depatel/text2.txt"))
-
-        val os: ByteArrayOutputStream = new ByteArrayOutputStream()
-        azureBlockBlob.download(os, null, blobRequestOptions, null)
-        println(os.size() + " " + os.toByteArray.length)
-        (azureBlockBlob.openInputStream(), azureBlockBlob.getName, azureBlockBlob.getProperties.getLength)
-      }
-
-      BlobManager.withSASUriBlobReference(sasUri, getBlobStream)
-    })
+//    // Method to download the blob file and get decrypted content.
+//    def decryptDownload(blobConnectionInfo: BlobConnectionInfo,
+//                        keyVaultConnectionInfo: KeyVaultConnectionInfo,
+//                        conf: Conf
+//                       ): KeyVaultKeyResolver = {
+//
+//      // Generate the file name
+//      var blobFileName = conf.blobStoreRootFolder.getOrElse("")
+//      if (blobFileName.startsWith("/"))
+//        blobFileName = blobFileName.drop(1)
+//      if (blobFileName.length > 0) {
+//        if (!blobFileName.endsWith("/"))
+//          blobFileName += "/"
+//      }
+//
+//      //    if (!sourceFile.startsWith("/"))
+//      //      blobFileName = s"$blobFileName$sourceFile"
+//      //    else
+//      //      blobFileName = s"$blobFileName${sourceFile.drop(1)}"
+//
+//      val keyVaultResolver = new KeyVaultKeyResolver(KeyVaultManager.getKeyVaultKeyClient(keyVaultConnectionInfo, conf.keyVaultResourceUri()))
+//      keyVaultResolver
+//    }
+//
+//
+//
+//
+//    // Start the download of the encrypted file from blob.
+//
+//    val keyVaultResolver = decryptDownload(blobConnectionInfo, keyVaultConnectionInfo, conf)
+//
+//
+//
+//    // do the decrypt download here.
+//    eventsToPublish.foreach(event => {
+//      logger.info(s"Start copying for file ${event.uri}")
+//      val uris = event.uri.split(";")
+//      val primaryUri = uris(0).split(" = ")(1).trim
+//      val secondaryUri = uris(1).split(" = ")(1).trim
+//      val sasUri = primaryUri.substring(1, primaryUri.length - 1) + "?" + event.sharedAccessSignatureToken.trim
+//      logger.info("SAS URI for the blob is : " + sasUri)
+//
+//      // Method to create and get Aure blob InputStream, blobName and blobSize.
+//      def getBlobStream(azureBlockBlob: CloudBlockBlob): (BlobInputStream, String, Long) = {
+//        val blobEncryptionPolicy = new BlobEncryptionPolicy(null, keyVaultResolver)
+//        val blobRequestOptions = new BlobRequestOptions()
+//        val operationContext = new OperationContext()
+//        blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
+//        blobRequestOptions.setConcurrentRequestCount(100)
+//        operationContext.setLoggingEnabled(true)
+//        // get the blob file metadata.
+//        azureBlockBlob.downloadAttributes()
+//
+//        println(azureBlockBlob.downloadText(null, null, blobRequestOptions, operationContext))
+//        azureBlockBlob.download(new FileOutputStream("/Users/depatel/text2.txt"))
+//
+//        val os: ByteArrayOutputStream = new ByteArrayOutputStream()
+//        azureBlockBlob.download(os, null, blobRequestOptions, null)
+//        println(os.size() + " " + os.toByteArray.length)
+//        (azureBlockBlob.openInputStream(), azureBlockBlob.getName, azureBlockBlob.getProperties.getLength)
+//      }
+//
+//      BlobManager.withSASUriBlobReference(sasUri, getBlobStream)
+//    })
 
 
     System.exit(0)
   }
+
+  case class decryptDownload
+
 }
