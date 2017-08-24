@@ -78,7 +78,7 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
       var eventsList: ListBuffer[Event] = ListBuffer[Event]()
 
     // Get the key vault resolver
-    val keyVaultResolver = new KeyVaultKeyResolver(KeyVaultManager.getKeyVaultKeyResolver(keyVaultConnectionInfo, keyVaultResourceUri))
+//    val keyVaultResolver = new KeyVaultKeyResolver(KeyVaultManager.getKeyVaultKeyResolver(keyVaultConnectionInfo, keyVaultResourceUri))
     val keyVaultKey = KeyVaultManager.getKey(keyVaultConnectionInfo, keyVaultResourceUri)
 
       for (message: EventData <- messagesList) {
@@ -106,7 +106,7 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
 
           // Method to create and get Aure blob InputStream, blobName and blobSize.
           def getBlobStream(azureBlockBlob: CloudBlockBlob): (BlobInputStream, String, Long) = {
-            val blobEncryptionPolicy = new BlobEncryptionPolicy(null, keyVaultResolver)
+            val blobEncryptionPolicy = new BlobEncryptionPolicy(keyVaultKey.get, null)
             val blobRequestOptions = new BlobRequestOptions()
             val operationContext = new OperationContext()
             blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
@@ -114,13 +114,10 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
             operationContext.setLoggingEnabled(true)
             // get the blob file metadata.
             azureBlockBlob.downloadAttributes()
-
             println(azureBlockBlob.downloadText(null, null, blobRequestOptions, operationContext))
-            azureBlockBlob.download(new FileOutputStream("/Users/depatel/text2.txt"))
-
-            val os:ByteArrayOutputStream = new ByteArrayOutputStream()
-            azureBlockBlob.download(os, null, blobRequestOptions, null)
-            println(os.size()+ " "+os.toByteArray.length)
+            val outStream = new ByteArrayOutputStream()
+            azureBlockBlob.download(outStream, null, blobRequestOptions, null)
+            println(new String(outStream.toByteArray))
             (azureBlockBlob.openInputStream(), azureBlockBlob.getName, azureBlockBlob.getProperties.getLength)
           }
 
