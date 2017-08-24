@@ -3,9 +3,9 @@ package com.starbucks.analytics.keyvault
 import java.util.concurrent.Executors
 
 import com.microsoft.azure.keyvault.core.IKey
+import com.typesafe.scalalogging.Logger
 import com.microsoft.azure.keyvault.{KeyVaultClient, KeyVaultClientImpl, KeyVaultClientService, KeyVaultConfiguration}
 import com.microsoft.azure.keyvault.extensions.KeyVaultKeyResolver
-import com.typesafe.scalalogging.Logger
 import org.apache.http.impl.client.HttpClientBuilder
 
 import scala.util.Try
@@ -53,9 +53,9 @@ object KeyVaultManager {
     )
   }
 
-  def getKeyVaultKeyClient(
-                              keyVaultConnectionInfo: KeyVaultConnectionInfo,
-                              resourceUri: String
+  def getKeyVaultKeyResolver(
+                            keyVaultConnectionInfo: KeyVaultConnectionInfo,
+                            resourceUri: String
                             ): KeyVaultClient ={
     val httpClientBuilder = HttpClientBuilder.create()
     val executorService = Executors.newCachedThreadPool()

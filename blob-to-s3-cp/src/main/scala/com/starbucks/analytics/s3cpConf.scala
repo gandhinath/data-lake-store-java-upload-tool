@@ -14,6 +14,8 @@ class s3cpConf(arguments: Seq[String]) extends ScallopConf(arguments) {
        |Tool to copy securely from Azure Blob Store to Amazon s3 bucket
        |Example:
        |Java -jar $getApplicationName
+       |  --spnClientId xx
+       |  --spnClientKey xx
        |  --eventHubNamespaceName xx
        |  --eventHubName xx
        |  --eventHubSASKeyName xx
@@ -23,6 +25,7 @@ class s3cpConf(arguments: Seq[String]) extends ScallopConf(arguments) {
        |  --eventHubStorageAccountName xx
        |  --eventHubStorageAccountKey xx
        |  --eventProcessorStorageContainer xx
+       |  --keyVaultResourceUri xx
        |  --awsAccessKeyID xx
        |  --awsSecretAccessKey xx
        |  --s3BucketName xx
@@ -33,6 +36,18 @@ class s3cpConf(arguments: Seq[String]) extends ScallopConf(arguments) {
      """.stripMargin
   )
 
+  val spnClientId = opt[String](
+    name = "spnClientId",
+    noshort = true,
+    descr = "Client Id of the Azure active directory application",
+    required = true
+  )
+  val spnClientKey = opt[String](
+    name = "spnClientKey",
+    noshort = true,
+    descr = "Client key for the Azure active directory application",
+    required = true
+  )
   val eventHubNamespaceName = opt[String](
     name = "eventHubNamespaceName",
     noshort = true,
@@ -90,6 +105,12 @@ class s3cpConf(arguments: Seq[String]) extends ScallopConf(arguments) {
     required = false,
     default = Some("defaultEventHubProcessorContainer")
   )
+  val keyVaultResourceUri = opt[String](
+    name = "keyVaultResourceUri",
+    noshort = true,
+    descr = "Key Vault resource uri",
+    required = true
+  )
   val awsAccessKeyID = opt[String](
     name = "awsAccessKeyID",
     noshort = false,
@@ -128,8 +149,8 @@ class s3cpConf(arguments: Seq[String]) extends ScallopConf(arguments) {
     case Help("") => printHelp()
   }
 
-  dependsOnAll(eventHubNamespaceName, List(eventHubName, eventHubSASKey, eventHubSASKeyName, eventHubStorageAccountKey,
-  eventHubStorageAccountName, awsAccessKeyID, awsSecretAccessKey, s3BucketName, s3FolderName))
+  dependsOnAll(eventHubNamespaceName, List(spnClientId, spnClientKey, eventHubName, eventHubSASKey, eventHubSASKeyName, eventHubStorageAccountKey,
+  eventHubStorageAccountName, keyVaultResourceUri, awsAccessKeyID, awsSecretAccessKey, s3BucketName, s3FolderName))
   verify()
 
   private def getApplicationName: String = new java.io.File(classOf[App]

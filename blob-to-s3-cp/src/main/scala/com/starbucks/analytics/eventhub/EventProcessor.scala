@@ -1,16 +1,21 @@
 package com.starbucks.analytics.eventhub
 
+import java.io.{ByteArrayOutputStream, FileOutputStream}
 import java.lang
+
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.s3.AmazonS3Client
 import com.google.gson.Gson
 import com.microsoft.azure.eventhubs.EventData
 import com.microsoft.azure.eventprocessorhost.{CloseReason, IEventProcessor, PartitionContext}
+import com.microsoft.azure.keyvault.extensions.KeyVaultKeyResolver
 import com.microsoft.azure.storage.OperationContext
-import com.microsoft.azure.storage.blob.{BlobInputStream, BlobRequestOptions, CloudBlockBlob}
+import com.microsoft.azure.storage.blob.{BlobEncryptionPolicy, BlobInputStream, BlobRequestOptions, CloudBlockBlob}
 import com.starbucks.analytics.blob.BlobManager
+import com.starbucks.analytics.keyvault.{KeyVaultConnectionInfo, KeyVaultManager}
 import com.starbucks.analytics.s3.S3Manger
 import com.typesafe.scalalogging.Logger
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.{ForkJoinTaskSupport, ParSeq}
@@ -19,7 +24,7 @@ import scala.util.{Failure, Success}
 /**
   * Event Processor to process all the events received from Event Hub.
   */
-class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName: String, s3FolderName: String, desiredParallelism: Int) extends IEventProcessor{
+class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName: String, s3FolderName: String, keyVaultConnectionInfo: KeyVaultConnectionInfo, keyVaultResourceUri: String, desiredParallelism: Int) extends IEventProcessor{
 
   private val logger = Logger("EventProcessor")
   private var checkpointBatchingCount = 0
@@ -71,6 +76,11 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
       var lastEventData: EventData = null
       val messagesList = messages.asScala
       var eventsList: ListBuffer[Event] = ListBuffer[Event]()
+
+    // Get the key vault resolver
+    val keyVaultResolver = new KeyVaultKeyResolver(KeyVaultManager.getKeyVaultKeyResolver(keyVaultConnectionInfo, keyVaultResourceUri))
+    val keyVaultKey = KeyVaultManager.getKey(keyVaultConnectionInfo, keyVaultResourceUri)
+
       for (message: EventData <- messagesList) {
         logger.info(s"(Partition: ${context.getPartitionId}, offset: ${message.getSystemProperties.getOffset}," +
           s"SeqNum: ${message.getSystemProperties.getSequenceNumber}) : ${new String(message.getBytes, "UTF-8")}")
@@ -85,6 +95,7 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
       parallelListofEvents.tasksupport = new ForkJoinTaskSupport(
         new scala.concurrent.forkjoin.ForkJoinPool(desiredParallelism)
       )
+
       parallelListofEvents.foreach(event => {
         logger.info(s"Start copying for file ${event.getUri}")
           val uris = event.getUri.split(";")
@@ -95,11 +106,21 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
 
           // Method to create and get Aure blob InputStream, blobName and blobSize.
           def getBlobStream(azureBlockBlob: CloudBlockBlob): (BlobInputStream, String, Long) = {
+            val blobEncryptionPolicy = new BlobEncryptionPolicy(null, keyVaultResolver)
             val blobRequestOptions = new BlobRequestOptions()
             val operationContext = new OperationContext()
+            blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
             blobRequestOptions.setConcurrentRequestCount(100)
             operationContext.setLoggingEnabled(true)
+            // get the blob file metadata.
             azureBlockBlob.downloadAttributes()
+
+            println(azureBlockBlob.downloadText(null, null, blobRequestOptions, operationContext))
+            azureBlockBlob.download(new FileOutputStream("/Users/depatel/text2.txt"))
+
+            val os:ByteArrayOutputStream = new ByteArrayOutputStream()
+            azureBlockBlob.download(os, null, blobRequestOptions, null)
+            println(os.size()+ " "+os.toByteArray.length)
             (azureBlockBlob.openInputStream(), azureBlockBlob.getName, azureBlockBlob.getProperties.getLength)
           }
 
@@ -120,7 +141,7 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
           }
       })
       logger.info(s"Checkpointing last received event : ${lastEventData.toString}")
-      context.checkpoint(lastEventData)
+//      context.checkpoint(lastEventData)
   }
 
 

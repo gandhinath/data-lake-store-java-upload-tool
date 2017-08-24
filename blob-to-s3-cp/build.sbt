@@ -25,6 +25,8 @@ libraryDependencies in ThisBuild ++= Seq(
   azure_storage_sdk,
   azure_eventhubs_sdk,
   azure_eventhubs_eph,
+  azure_keyvault_sdk,
+  azure_keyvault_extensions_sdk,
   aws_s3_sdk)
 
 resolvers in ThisBuild ++= Seq(

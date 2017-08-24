@@ -1,12 +1,13 @@
 package com.starbucks.analytics.blob
 
+import java.net.URI
 import java.util
 
 import com.microsoft.azure.keyvault.core.IKey
-import com.microsoft.azure.storage.{ CloudStorageAccount, OperationContext }
+import com.microsoft.azure.storage.{CloudStorageAccount, OperationContext}
 import com.microsoft.azure.storage.blob._
 import com.typesafe.scalalogging.Logger
-import org.joda.time.{ DateTime, DateTimeZone }
+import org.joda.time.{DateTime, DateTimeZone}
 
 import scala.util.Try
 
@@ -127,5 +128,12 @@ object BlobManager {
       null
     )
     (blockBlobReference.getStorageUri.toString, sasToken)
+  }
+
+  // Method to return a blobReference for the given SAS URI.
+  def withSASUriBlobReference[R]( sasUri: String,
+                                  f: CloudBlockBlob => R): Try[R] ={
+    val azureBlockBlob = new CloudBlockBlob(new URI(sasUri))
+    Try(f(azureBlockBlob))
   }
 }
