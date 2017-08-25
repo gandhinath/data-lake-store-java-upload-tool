@@ -1,6 +1,6 @@
 package com.starbucks.analytics.eventhub
 
-import java.io.{ByteArrayOutputStream, FileOutputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, FileOutputStream}
 import java.lang
 
 import com.amazonaws.auth.BasicAWSCredentials
@@ -11,6 +11,7 @@ import com.microsoft.azure.eventprocessorhost.{CloseReason, IEventProcessor, Par
 import com.microsoft.azure.keyvault.extensions.KeyVaultKeyResolver
 import com.microsoft.azure.storage.OperationContext
 import com.microsoft.azure.storage.blob.{BlobEncryptionPolicy, BlobInputStream, BlobRequestOptions, CloudBlockBlob}
+import com.starbucks.analytics.S3UploadOutputStream
 import com.starbucks.analytics.blob.BlobManager
 import com.starbucks.analytics.keyvault.{KeyVaultConnectionInfo, KeyVaultManager}
 import com.starbucks.analytics.s3.S3Manger
@@ -105,7 +106,7 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
           logger.info("SAS URI for the blob is : " + sasUri)
 
           // Method to create and get Aure blob InputStream, blobName and blobSize.
-          def getBlobStream(azureBlockBlob: CloudBlockBlob): (BlobInputStream, String, Long) = {
+          def getBlobStream(azureBlockBlob: CloudBlockBlob): (S3UploadOutputStream, String, Long) = {
             val blobEncryptionPolicy = new BlobEncryptionPolicy(keyVaultKey.get, null)
             val blobRequestOptions = new BlobRequestOptions()
             val operationContext = new OperationContext()
@@ -114,11 +115,9 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
             operationContext.setLoggingEnabled(true)
             // get the blob file metadata.
             azureBlockBlob.downloadAttributes()
-            println(azureBlockBlob.downloadText(null, null, blobRequestOptions, operationContext))
-            val outStream = new ByteArrayOutputStream()
+            val outStream = new S3UploadOutputStream()
             azureBlockBlob.download(outStream, null, blobRequestOptions, null)
-            println(new String(outStream.toByteArray))
-            (azureBlockBlob.openInputStream(), azureBlockBlob.getName, azureBlockBlob.getProperties.getLength)
+            (outStream, azureBlockBlob.getName, azureBlockBlob.getProperties.getLength)
           }
 
           BlobManager.withSASUriBlobReference(sasUri, getBlobStream) match {
@@ -138,7 +137,7 @@ class EventProcessor(awsAccessKeyId: String, awsSecretKey: String, s3BucketName:
           }
       })
       logger.info(s"Checkpointing last received event : ${lastEventData.toString}")
-//      context.checkpoint(lastEventData)
+      context.checkpoint(lastEventData)
   }
 
 

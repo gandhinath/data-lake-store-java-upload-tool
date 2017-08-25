@@ -17,7 +17,6 @@ import org.apache.http.message.BasicHeader
  */
 class KVCredentials(keyVaultConnectionInfo: KeyVaultConnectionInfo) extends KeyVaultCredentials {
   private val connectionInfo: KeyVaultConnectionInfo = keyVaultConnectionInfo
-  var accessToken: Option[String] = None
   /**
    * Actually do the authentication. This method will be called by the super
    * class.
@@ -39,10 +38,6 @@ class KVCredentials(keyVaultConnectionInfo: KeyVaultConnectionInfo) extends KeyV
       clientId,
       clientKey
     )
-    accessToken match {
-      case Some(accessToken) => println("AccessToken for key vault store already exists.")
-      case None => accessToken = Some(token.getAccessToken)
-    }
     new BasicHeader(
       "Authorization",
       s"""${token.getAccessTokenType} ${token.getAccessToken}"""
