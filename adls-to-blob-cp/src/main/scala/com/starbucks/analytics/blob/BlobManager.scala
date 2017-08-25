@@ -130,10 +130,4 @@ object BlobManager {
     (blockBlobReference.getStorageUri.toString, sasToken)
   }
 
-  // Method to return a blobReference for the given SAS URI.
-  def withSASUriBlobReference[R]( sasUri: String,
-                                  f: CloudBlockBlob => R): Try[R] ={
-    val azureBlockBlob = new CloudBlockBlob(new URI(sasUri))
-    Try(f(azureBlockBlob))
-  }
 }
