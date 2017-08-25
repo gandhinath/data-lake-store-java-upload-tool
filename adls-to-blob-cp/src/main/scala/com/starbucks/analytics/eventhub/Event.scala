@@ -1,6 +1,6 @@
 package com.starbucks.analytics.eventhub
 
-class Event(val uri: String, val sharedAccessSignatureToken: String) {
+class Event(uri: String, sharedAccessSignatureToken: String) {
   def toJson: String =
     s"""{
        |    "uri": "$uri",

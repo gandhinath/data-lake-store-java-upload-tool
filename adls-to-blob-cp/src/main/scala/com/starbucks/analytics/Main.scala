@@ -1,9 +1,7 @@
 package com.starbucks.analytics
 
-import java.io.ByteArrayOutputStream
-
 import com.microsoft.azure.datalake.store.ADLFileInputStream
-import com.microsoft.azure.storage.{AccessCondition, OperationContext}
+import com.microsoft.azure.storage.OperationContext
 import com.microsoft.azure.storage.blob.{BlobEncryptionPolicy, BlobRequestOptions, CloudBlockBlob}
 import com.starbucks.analytics.adls.{ADLSConnectionInfo, ADLSManager}
 import com.starbucks.analytics.blob.{BlobConnectionInfo, BlobManager}
@@ -189,11 +187,6 @@ object Main {
             blobRequestOptions,
             operationContext
           )
-          // Decrypt using the resolver.
-          println(blockBlobReference.downloadText(null, null, blobRequestOptions, operationContext))
-          val outStream = new ByteArrayOutputStream()
-          blockBlobReference.download(outStream, null, blobRequestOptions, null)
-          println(new String(outStream.toByteArray))
         }
         ADLSManager.withAzureDataLakeStoreFileStream[Boolean](
           adlsConnectionInfo,

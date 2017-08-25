@@ -1,11 +1,9 @@
 package com.starbucks.analytics.blob
 
-import java.net.URI
 import java.util
 
-import com.microsoft.azure.keyvault.core.IKey
-import com.microsoft.azure.storage.{CloudStorageAccount, OperationContext}
 import com.microsoft.azure.storage.blob._
+import com.microsoft.azure.storage.{CloudStorageAccount, OperationContext}
 import com.typesafe.scalalogging.Logger
 import org.joda.time.{DateTime, DateTimeZone}
 

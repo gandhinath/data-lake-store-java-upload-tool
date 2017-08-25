@@ -52,19 +52,4 @@ object KeyVaultManager {
       fn
     )
   }
-
-  def getKeyVaultKeyClient(
-                              keyVaultConnectionInfo: KeyVaultConnectionInfo,
-                              resourceUri: String
-                            ): KeyVaultClient ={
-    val httpClientBuilder = HttpClientBuilder.create()
-    val executorService = Executors.newCachedThreadPool()
-    val credentials = new KVCredentials(keyVaultConnectionInfo)
-    val cloudVault: KeyVaultClient = new KeyVaultClientImpl(
-      httpClientBuilder,
-      executorService,
-      credentials
-    )
-    cloudVault
-  }
 }
