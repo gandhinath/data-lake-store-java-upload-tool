@@ -4,7 +4,7 @@ name in ThisBuild := "blob-to-s3-cp"
 
 organization in ThisBuild := "com.starbucks.analytics"
 
-version in ThisBuild := "0.1"
+version in ThisBuild := "0.2"
 
 licenses in ThisBuild += ("Apache License, Version 2.0", url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
@@ -25,6 +25,8 @@ libraryDependencies in ThisBuild ++= Seq(
   azure_storage_sdk,
   azure_eventhubs_sdk,
   azure_eventhubs_eph,
+  azure_keyvault_sdk,
+  azure_keyvault_extensions_sdk,
   aws_s3_sdk)
 
 resolvers in ThisBuild ++= Seq(

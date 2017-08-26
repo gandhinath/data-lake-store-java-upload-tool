@@ -12,6 +12,8 @@ object Dependencies {
   lazy val azure_eventhubs_sdk: ModuleID = "com.microsoft.azure" % "azure-eventhubs" % "0.14.0"
   lazy val azure_eventhubs_eph: ModuleID = "com.microsoft.azure" % "azure-eventhubs-eph" % "0.14.0"
   lazy val aws_s3_sdk: ModuleID = "com.amazonaws" % "aws-java-sdk" % "1.11.162"
+  lazy val azure_keyvault_sdk: ModuleID = "com.microsoft.azure" % "azure-keyvault" % "0.9.7"
+  lazy val azure_keyvault_extensions_sdk: ModuleID = "com.microsoft.azure" % "azure-keyvault-extensions" % "0.9.7"
 
   // Provided scope:
   // Scope provided by container, available only in compile and test classpath, non-transitive by default.

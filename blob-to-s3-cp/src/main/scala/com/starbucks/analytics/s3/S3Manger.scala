@@ -1,8 +1,11 @@
 package com.starbucks.analytics.s3
 
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model._
 import com.microsoft.azure.storage.blob.BlobInputStream
+import com.starbucks.analytics.S3UploadOutputStream
 import com.typesafe.scalalogging.Logger
 
 /**
@@ -21,15 +24,16 @@ object S3Manger {
     * @param s3Client AWS s3 Client object with credentails.
     * @return
     */
-  def uploadToS3(data: BlobInputStream, bucketName: String, folderName: String, blobName: String, blobSize: Long, s3Client: AmazonS3Client): Boolean ={
+  def uploadToS3(data: S3UploadOutputStream, bucketName: String, folderName: String, blobName: String, blobSize: Long, s3Client: AmazonS3Client): Boolean ={
     try{
-      logger.info(s"S3 bucket upload for file ${blobName} to bucket ${bucketName} for size ${blobSize}")
+      logger.info(s"S3 bucket upload for file ${blobName} to bucket ${bucketName} for size ${data.size()}")
       val fileName = folderName+ "/" +blobName.split("\\/").last
      // if(!checkIfExists(bucketName, fileName, blobSize, s3Client)) {
+//        val stream = new ByteArrayInputStream(data.toByteArray)
         val metadata = new ObjectMetadata()
         metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION)
-        metadata.setContentLength(blobSize)
-        s3Client.putObject(new PutObjectRequest(bucketName, fileName, data, metadata))
+        metadata.setContentLength(data.size())
+        s3Client.putObject(new PutObjectRequest(bucketName, fileName, data.toInputStream, metadata))
         true
 //      } else {
 //        logger.warn(s"File ${fileName} with same content length already exists in s3Bucket: ${bucketName}")

@@ -3,8 +3,10 @@ package com.starbucks.analytics
 import com.microsoft.azure.eventprocessorhost.{EventProcessorHost, EventProcessorOptions}
 import com.starbucks.analytics.blob.BlobConnectionInfo
 import com.starbucks.analytics.eventhub._
+import com.starbucks.analytics.keyvault.KeyVaultConnectionInfo
 import com.starbucks.analytics.s3.S3ConnectionInfo
 import com.typesafe.scalalogging.Logger
+
 import scala.concurrent.ExecutionException
 import scala.util.{Failure, Success}
 
@@ -48,13 +50,18 @@ object Main {
       accountKey = conf.eventHubStorageAccountKey()
     )
 
+    val keyVaultConnectionInfo = KeyVaultConnectionInfo(
+      clientId = conf.spnClientId(),
+      clientKey = conf.spnClientKey()
+    )
+
     EventHubManager.getEventProcessorHost(eventHubConnectionInfo, blobConnectionInfo) match {
       case Failure(e) => println(e)
       case Success(eventProcessorHost) => {
         val options = new EventProcessorOptions
         options.setExceptionNotification(new EventHubErrorNotificationHandler)
         try{
-          eventProcessorHost.registerEventProcessorFactory(new EventProcessorFactory(s3ConnectionInfo, conf.desiredParallelism()), options)
+          eventProcessorHost.registerEventProcessorFactory(new EventProcessorFactory(s3ConnectionInfo, keyVaultConnectionInfo, conf.keyVaultResourceUri() ,conf.desiredParallelism()), options)
         }catch {
           case e: ExecutionException => {
             logger.error(e.getCause.toString)
@@ -81,4 +88,5 @@ object Main {
     }
     System.exit(0)
   }
+
 }
