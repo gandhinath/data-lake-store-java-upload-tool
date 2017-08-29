@@ -1,30 +1,31 @@
 package com.starbucks.analytics
 
 import com.microsoft.azure.datalake.store.ADLFileInputStream
-import com.microsoft.azure.storage.OperationContext
-import com.microsoft.azure.storage.blob.{BlobEncryptionPolicy, BlobRequestOptions, CloudBlockBlob}
-import com.starbucks.analytics.adls.{ADLSConnectionInfo, ADLSManager}
-import com.starbucks.analytics.blob.{BlobConnectionInfo, BlobManager}
-import com.starbucks.analytics.eventhub.{Event, EventHubConnectionInfo, EventHubManager}
-import com.starbucks.analytics.keyvault.{KeyVaultConnectionInfo, KeyVaultManager}
+import com.microsoft.azure.storage.{ AccessCondition, OperationContext }
+import com.microsoft.azure.storage.blob.{ BlobEncryptionPolicy, BlobRequestOptions, CloudBlockBlob }
+import com.starbucks.analytics.adls.{ ADLSConnectionInfo, ADLSManager }
+import com.starbucks.analytics.blob.{ BlobConnectionInfo, BlobManager }
+import com.starbucks.analytics.eventhub.{ Event, EventHubConnectionInfo, EventHubManager }
+import com.starbucks.analytics.keyvault.{ KeyVaultConnectionInfo, KeyVaultManager }
 import com.typesafe.scalalogging.Logger
 
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParSeq
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 /**
-  * Entry point for the application
-  */
+ * Entry point for the application
+ */
 object Main {
   val logger = Logger("Main")
   var successMap = new mutable.LinkedHashMap[String, (Boolean, Option[(String, String)])]()
+  var renamesuccessMap = new mutable.LinkedHashMap[String, Boolean]()
 
   /**
-    * Entry point
-    * @param args Command line arguments
-    */
+   * Entry point
+   * @param args Command line arguments
+   */
   def main(args: Array[String]) {
     val conf = new Conf(args)
     logger.info(conf.summary)
@@ -116,27 +117,73 @@ object Main {
           else
             logger.error("Failed to upload one or more events")
       }
+
+      logger.info("Renaming files with .DONE extension.")
+      listOfFiles.foreach(file => {
+        val renameresult: (Boolean) = rename(
+          adlsConnectionInfo,
+          file
+        )
+        renamesuccessMap += (file -> renameresult)
+      })
+      if (renamesuccessMap.exists((x) => !x._2)) {
+        logger.error(s"Failed renaming the following files:" +
+          s" ${renamesuccessMap.filter((x) => !x._2).mkString("\n")}")
+        System.exit(-1)
+      } else {
+        logger.info(s"Succeeded renaming the files: " +
+          s" ${renamesuccessMap.keys.mkString("\n")}")
+      }
+
     }
     logger.info(s"Completed execution")
     System.exit(0)
   }
 
   /**
-    * Uploads the file from Azure Data Lake Store to Azure Blob Storage
-    *
-    * @param adlsConnectionInfo Azure Data Lake Store Connection Information
-    * @param blobConnectionInfo Azure Data Blob Store Connection Information
-    * @param conf Tool configuration
-    * @param sourceFile File to upload
-    * @return
-    */
+   * Rename the file in Azure Data Lake Store
+   * @param adlsConnectionInfo Azure Data Lake Store Connection Information
+   * @param sourceFile File to rename
+   * @return
+   */
+  def rename(
+    adlsConnectionInfo: ADLSConnectionInfo,
+    sourceFile:         String
+  ): (Boolean) = {
+    var success = false
+    ADLSManager.renameFile(
+      adlsConnectionInfo,
+      sourceFile,
+      ".DONE"
+    ) match {
+        case Success(value) => {
+          logger.info(s"Successfully Renamed the file $sourceFile")
+          success = true
+        }
+        case Failure(f) =>
+          logger.error(s"failure in renaming $sourceFile" +
+            s" in Azure Data Lake Store ${adlsConnectionInfo.accountFQDN}" +
+            s" failed with exception $f")
+      }
+    (success)
+  }
+
+  /**
+   * Uploads the file from Azure Data Lake Store to Azure Blob Storage
+   *
+   * @param adlsConnectionInfo Azure Data Lake Store Connection Information
+   * @param blobConnectionInfo Azure Data Blob Store Connection Information
+   * @param conf Tool configuration
+   * @param sourceFile File to upload
+   * @return
+   */
   def upload(
-              adlsConnectionInfo:     ADLSConnectionInfo,
-              blobConnectionInfo:     BlobConnectionInfo,
-              keyVaultConnectionInfo: KeyVaultConnectionInfo,
-              conf:                   Conf,
-              sourceFile:             String
-            ): (Boolean, Option[(String, String)]) = {
+    adlsConnectionInfo:     ADLSConnectionInfo,
+    blobConnectionInfo:     BlobConnectionInfo,
+    keyVaultConnectionInfo: KeyVaultConnectionInfo,
+    conf:                   Conf,
+    sourceFile:             String
+  ): (Boolean, Option[(String, String)]) = {
     var success = false
     var uriAndToken: Option[(String, String)] = None
 
@@ -165,79 +212,79 @@ object Main {
       conf.blobStoreContainerName(),
       blobFileName
     ) match {
-      case Failure(exception) => {
-        logger.error(s"Error creating block blob $sourceFile" +
-          s" in container ${conf.blobStoreContainerName}" +
-          s" in storage account ${blobConnectionInfo.accountName}." +
-          s" Exception: $exception")
-        success = false
-      }
-      case Success(blockBlobReference: CloudBlockBlob) => {
-        def fn(stream: ADLFileInputStream) = {
-          val blobEncryptionPolicy = new BlobEncryptionPolicy(keyVaultKey.get, null)
-          val blobRequestOptions = new BlobRequestOptions()
-          val operationContext = new OperationContext()
-          blobRequestOptions.setConcurrentRequestCount(100)
-          blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
-          operationContext.setLoggingEnabled(true)
-          blockBlobReference.upload(
-            stream,
-            -1,
-            null,
-            blobRequestOptions,
-            operationContext
-          )
+        case Failure(exception) => {
+          logger.error(s"Error creating block blob $sourceFile" +
+            s" in container ${conf.blobStoreContainerName}" +
+            s" in storage account ${blobConnectionInfo.accountName}." +
+            s" Exception: $exception")
+          success = false
         }
-        ADLSManager.withAzureDataLakeStoreFileStream[Boolean](
-          adlsConnectionInfo,
-          sourceFile,
-          fn
-        ) match {
-          case Failure(exception) =>
-            logger.error(s"Error uploading to block blob $sourceFile" +
-              s" in container ${conf.blobStoreContainerName}" +
-              s" in storage account ${blobConnectionInfo.accountName}." +
-              s" Exception: $exception")
-            success = false
-          case Success(value) =>
-            if (value) {
-              logger.info(s"Trying to generate shared access signature for block blob" +
-                s" $sourceFile in containers ${conf.blobStoreContainerName}")
-              Try(BlobManager.getSharedAccessSignatureToken(
-                blockBlobReference,
-                conf.tokenExpiration()
-              )) match {
-                case Failure(exception) =>
-                  logger.error(s"Error getting a shared access signature token" +
-                    s" for block blob $sourceFile in container" +
-                    s" ${conf.blobStoreContainerName} in storage account " +
-                    s" ${blobConnectionInfo.accountName}. Exception: $exception")
-                  success = false
-                case Success(result) =>
-                  uriAndToken = Some((result._1, result._2))
-                  success = true
-              }
-            } else {
+        case Success(blockBlobReference: CloudBlockBlob) => {
+          def fn(stream: ADLFileInputStream) = {
+            val blobEncryptionPolicy = new BlobEncryptionPolicy(keyVaultKey.get, null)
+            val blobRequestOptions = new BlobRequestOptions()
+            val operationContext = new OperationContext()
+            blobRequestOptions.setConcurrentRequestCount(100)
+            blobRequestOptions.setEncryptionPolicy(blobEncryptionPolicy)
+            operationContext.setLoggingEnabled(true)
+            blockBlobReference.upload(
+              stream,
+              -1,
+              null,
+              blobRequestOptions,
+              operationContext
+            )
+          }
+          ADLSManager.withAzureDataLakeStoreFileStream[Boolean](
+            adlsConnectionInfo,
+            sourceFile,
+            fn
+          ) match {
+            case Failure(exception) =>
+              logger.error(s"Error uploading to block blob $sourceFile" +
+                s" in container ${conf.blobStoreContainerName}" +
+                s" in storage account ${blobConnectionInfo.accountName}." +
+                s" Exception: $exception")
               success = false
-            }
+            case Success(value) =>
+              if (value) {
+                logger.info(s"Trying to generate shared access signature for block blob" +
+                  s" $sourceFile in containers ${conf.blobStoreContainerName}")
+                Try(BlobManager.getSharedAccessSignatureToken(
+                  blockBlobReference,
+                  conf.tokenExpiration()
+                )) match {
+                  case Failure(exception) =>
+                    logger.error(s"Error getting a shared access signature token" +
+                      s" for block blob $sourceFile in container" +
+                      s" ${conf.blobStoreContainerName} in storage account " +
+                      s" ${blobConnectionInfo.accountName}. Exception: $exception")
+                    success = false
+                  case Success(result) =>
+                    uriAndToken = Some((result._1, result._2))
+                    success = true
+                }
+              } else {
+                success = false
+              }
+          }
         }
       }
-    }
 
     (success, uriAndToken)
   }
 
   /**
-    * Return a list of files from the source
-    *
-    * @param conf Configuration
-    * @param adlsConnectionInfo Connection Information for
-    *                           Azure Data Lake Store
-    */
+   * Return a list of files from the source
+   *
+   * @param conf Configuration
+   * @param adlsConnectionInfo Connection Information for
+   *                           Azure Data Lake Store
+   */
   def getListOfFiles(
-                      conf:               Conf,
-                      adlsConnectionInfo: ADLSConnectionInfo
-                    ): mutable.ListBuffer[String] = {
+    conf:               Conf,
+    adlsConnectionInfo: ADLSConnectionInfo
+  ): mutable.ListBuffer[String] = {
     // Set up the source structure that this tool needs to
     // operate on
     var listOfFiles = new mutable.ListBuffer[String]()
@@ -249,7 +296,7 @@ object Main {
       sourceFolder = sourceFolder.dropRight(1)
     }
 
-    if (conf.sourceFile.isSupplied) {
+    if (conf.sourceFile.isSupplied && !conf.sourceFile().endsWith(".DONE")) {
       listOfFiles += {
         if (conf.sourceFile().startsWith("/")) {
           s"$sourceFolder${conf.sourceFile()}"
