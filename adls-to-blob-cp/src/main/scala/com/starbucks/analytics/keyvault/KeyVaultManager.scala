@@ -39,14 +39,14 @@ object KeyVaultManager {
 
   def getKey(
     keyVaultConnectionInfo: KeyVaultConnectionInfo,
-    resourceUri:                String
+    resourceUri:            String
   ): Try[IKey] = {
-      def fn(kvClient: KeyVaultClient): IKey = {
-        val keyVaultResolver: KeyVaultKeyResolver = new KeyVaultKeyResolver(
-          kvClient
-        )
-        keyVaultResolver.resolveKeyAsync(resourceUri).get()
-      }
+    def fn(kvClient: KeyVaultClient): IKey = {
+      val keyVaultResolver: KeyVaultKeyResolver = new KeyVaultKeyResolver(
+        kvClient
+      )
+      keyVaultResolver.resolveKeyAsync(resourceUri).get()
+    }
     withAzureKeyVaultClient(
       keyVaultConnectionInfo,
       fn

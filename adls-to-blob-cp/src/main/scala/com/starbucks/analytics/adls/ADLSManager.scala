@@ -234,9 +234,18 @@ object ADLSManager {
     def fn(adlStoreClient: ADLStoreClient): Boolean = {
       adlStoreClient.rename(path, path + extension, true)
     }
+    def del(adlStoreClient: ADLStoreClient): Boolean = {
+      adlStoreClient.delete(path + extension)
+    }
     checkIfPathExists(connectionInfo, path) match {
       case Success(exists) =>
         if (exists) {
+          logger.info(s"Deleting the file $path" +
+            s"$extension in Azure Data Lake Store ${connectionInfo.accountFQDN} if exists")
+          withAzureDataLakeStoreClient(
+            connectionInfo,
+            del
+          )
           logger.info(s"Renaming the file $path" +
             s" in Azure Data Lake Store ${connectionInfo.accountFQDN}")
           withAzureDataLakeStoreClient(
