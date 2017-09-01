@@ -119,7 +119,7 @@ object Main {
       }
 
       logger.info("Renaming files with .DONE extension.")
-      listOfFiles.foreach(file => {
+      parallelListOfFiles.foreach(file => {
         val renameresult: (Boolean) = rename(
           adlsConnectionInfo,
           file
